@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum EventGateError {
-    // Validation 
     #[msg("Event name exceeds 50 characters")]
     NameTooLong,
     #[msg("Description exceeds 200 characters")]
@@ -17,7 +16,7 @@ pub enum EventGateError {
     InvalidTierCount,
     #[msg("Tier supply must be at least 1")]
     InvalidSupply,
-    #[msg("Ticket price must be greater than 0 lamports")]
+    #[msg("Ticket price must be ≥ 0 lamports")]
     InvalidPrice,
     #[msg("Royalty basis-points must be ≤ 2 000 (20 %)")]
     InvalidRoyalty,
@@ -26,35 +25,41 @@ pub enum EventGateError {
     #[msg("event_end must be after event_start")]
     EndBeforeStart,
 
-    // Event state 
     #[msg("Event is not active")]
     EventNotActive,
     #[msg("Event has already ended")]
     EventEnded,
-    #[msg("Event has not started yet; check-in opens 1 hour before start")]
+    #[msg("Check-in opens 1 hour before event start")]
     CheckInTooEarly,
     #[msg("Event is already cancelled")]
     EventAlreadyCancelled,
-    #[msg("Cannot cancel: check-ins have already begun")]
+    #[msg("Cannot cancel: at least one attendee has already checked in")]
     CannotCancelAfterCheckIn,
 
-    // Ticket state 
-    #[msg("Tier is sold out")]
+    #[msg("This tier is sold out")]
     TierSoldOut,
-    #[msg("Invalid tier index")]
+    #[msg("Tier index out of bounds")]
     InvalidTierIndex,
+    #[msg("This tier is not currently on sale")]
+    TierNotOnSale,
+    #[msg("Tier sale has not started yet")]
+    TierSaleNotStarted,
+    #[msg("Tier sale window has ended")]
+    TierSaleEnded,
+
     #[msg("Ticket has already been checked in")]
     AlreadyCheckedIn,
+    #[msg("Ticket has not been checked in yet")]
+    NotCheckedIn,
     #[msg("Ticket does not belong to this event")]
     TicketEventMismatch,
     #[msg("Caller does not own this ticket")]
     NotTicketOwner,
-    #[msg("Ticket is currently listed for resale")]
+    #[msg("Ticket is currently listed for resale — cancel listing first")]
     TicketIsListed,
     #[msg("Ticket is not listed for resale")]
     TicketNotListed,
 
-    // Token / mint 
     #[msg("Token mint does not match ticket record")]
     MintMismatch,
     #[msg("Token account has zero balance")]
@@ -62,27 +67,45 @@ pub enum EventGateError {
     #[msg("Token account authority mismatch")]
     TokenOwnerMismatch,
 
-    // Marketplace
     #[msg("Resale is not enabled for this event")]
     ResaleNotAllowed,
     #[msg("Listing price exceeds the event resale price cap")]
     PriceExceedsCap,
-    #[msg("Buyer is the current owner of the ticket")]
+    #[msg("Buyer is already the owner of this ticket")]
     BuyerIsOwner,
 
-    //Access control 
+    #[msg("POAP minting is not enabled for this event")]
+    PoapNotEnabled,
+    #[msg("A POAP has already been minted for this ticket")]
+    PoapAlreadyMinted,
+
+    #[msg("This event requires a whitelist entry to purchase")]
+    WhitelistEntryRequired,
+    #[msg("Whitelist entry belongs to a different event")]
+    WhitelistEventMismatch,
+    #[msg("Caller is not on the whitelist for this event")]
+    NotWhitelisted,
+    #[msg("Whitelist allocation fully used")]
+    AllocationExhausted,
+    #[msg("Whitelist gating is not enabled for this event")]
+    WhitelistNotEnabled,
+
     #[msg("Signer is not the event authority")]
     NotEventAuthority,
     #[msg("Signer is not an authorised gate operator")]
     NotGateOperator,
     #[msg("Gate operator is already registered")]
     OperatorAlreadyAdded,
-    #[msg("Gate operator not found in list")]
+    #[msg("Gate operator not found")]
     OperatorNotFound,
-    #[msg("Too many gate operators (max 10)")]
+    #[msg("Max gate operators reached (10)")]
     TooManyOperators,
 
-    // Arithmetic 
-    #[msg("Arithmetic overflow / underflow")]
+    #[msg("No withdrawable balance in event PDA")]
+    NothingToWithdraw,
+    #[msg("Requested withdrawal exceeds available balance")]
+    InsufficientFunds,
+
+    #[msg("Arithmetic overflow or underflow")]
     Overflow,
 }
