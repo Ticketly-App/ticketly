@@ -1,12 +1,12 @@
 [package]
-name = "event_gate"
+name = "sol_entry"
 version = "0.1.0"
 description = "Onchain Luma — tokenised event ticketing on Solana"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "event_gate"
+name = "sol_entry"
 
 [features]
 no-entrypoint = []
