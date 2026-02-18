@@ -1,42 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  event_gate — Onchain Luma: tokenised event ticketing on Solana
-//
-//  Instruction surface (20 instructions):
-//
-//  Platform
-//    init_platform         — one-time platform config singleton
-//    update_platform       — change protocol fee / pause
-//
-//  Organiser profile
-//    init_organizer        — create persistent organiser identity
-//    update_organizer      — update name / website / logo
-//
-//  Event management
-//    create_event          — mint a new event with up to 5 tiers
-//    update_event          — edit mutable event fields
-//    cancel_event          — cancel (only if 0 check-ins)
-//    withdraw_revenue      — drain primary-sale lamports from event PDA
-//
-//  Gate operators
-//    add_operator          — register a gate staff wallet
-//    remove_operator       — revoke a gate staff wallet
-//
-//  Whitelist
-//    add_whitelist_entry   — allowlist a buyer wallet + allocation
-//    remove_whitelist_entry— remove allowlist entry
-//
-//  Ticket lifecycle
-//    mint_ticket           — buy & mint a ticket NFT (whitelist-aware)
-//    check_in_ticket       — verify & check in attendee; freeze metadata
-//    transfer_ticket       — P2P gift / direct transfer
-//    mint_poap             — mint POAP NFT after check-in
-//
-//  Marketplace
-//    list_ticket           — list ticket for resale (escrow)
-//    buy_ticket            — purchase listed ticket with royalty split
-//    cancel_listing        — delist and return token to seller
-// ─────────────────────────────────────────────────────────────────────────────
-
 use anchor_lang::prelude::*;
 
 pub mod constants;
@@ -52,10 +13,10 @@ pub mod instructions;
 use contexts::*;
 use instructions::*;
 
-declare_id!("3FWjsmMG13BLm5KQQsjZ9jozfSQC91gntgDuAMfNnkbJ");
+declare_id!("8QMjo4LvdgEKu67AnE3eGzng5Nc22SrRX7itcvnKqL3W");
 
 #[program]
-pub mod event_gate {
+pub mod sol_entry {
     use super::*;
 
     pub fn init_platform(
