@@ -48,6 +48,7 @@ pub struct MintTicket<'info> {
     )]
     pub recipient_ata: Account<'info, TokenAccount>,
 
+    /// CHECK: Used as metadata account CPI target; validation is performed by Metaplex program during CPI.
     #[account(mut)]
     pub metadata_account: UncheckedAccount<'info>,
 

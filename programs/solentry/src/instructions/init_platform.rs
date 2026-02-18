@@ -44,8 +44,6 @@ pub fn update_platform_handler(
     Ok(())
 }
 
-// ─── Contexts ─────────────────────────────────────────────────────────────────
-
 #[derive(Accounts)]
 pub struct InitPlatform<'info> {
     #[account(

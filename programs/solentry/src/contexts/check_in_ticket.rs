@@ -43,9 +43,11 @@ pub struct CheckInTicket<'info> {
     )]
     pub attendee_ata: Account<'info, TokenAccount>,
 
+    /// CHECK: Used as metadata account CPI target; validation is performed by Metaplex program during CPI.
     #[account(mut)]
     pub metadata_account: UncheckedAccount<'info>,
 
+    /// CHECK: Not read/written directly; ownership is enforced via `attendee_ata.owner == attendee.key()`.
     pub attendee: UncheckedAccount<'info>,
 
     pub gate_operator: Signer<'info>,

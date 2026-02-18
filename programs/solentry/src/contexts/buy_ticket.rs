@@ -63,9 +63,11 @@ pub struct BuyTicket<'info> {
     )]
     pub buyer_ata: Account<'info, TokenAccount>,
 
+    /// CHECK: Address is constrained to `listing.seller`; used only as rent recipient/transfer target.
     #[account(mut, address = listing.seller)]
     pub seller: UncheckedAccount<'info>,
 
+    /// CHECK: Address is constrained to `event.royalty_receiver`; used only as transfer recipient.
     #[account(mut, address = event.royalty_receiver)]
     pub royalty_receiver: UncheckedAccount<'info>,
 

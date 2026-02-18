@@ -54,6 +54,7 @@ pub struct TransferTicket<'info> {
     #[account(mut)]
     pub sender: Signer<'info>,
 
+    /// CHECK: Only used as associated token authority for recipient ATA; no direct data access.
     pub recipient: UncheckedAccount<'info>,
 
     pub system_program:           Program<'info, System>,

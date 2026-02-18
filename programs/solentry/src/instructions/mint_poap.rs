@@ -147,9 +147,11 @@ pub struct MintPoap<'info> {
     )]
     pub holder_ata: Account<'info, TokenAccount>,
 
+    /// CHECK: Used as metadata account CPI target; validation is performed by Metaplex program during CPI.
     #[account(mut)]
     pub poap_metadata_account: UncheckedAccount<'info>,
 
+    /// CHECK: Address is constrained to `ticket.owner`; used only as ATA authority.
     #[account(constraint = holder.key() == ticket.owner @ EventGateError::NotTicketOwner)]
     pub holder: UncheckedAccount<'info>,
 
