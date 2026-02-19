@@ -11,6 +11,7 @@ use crate::{
 #[derive(Accounts)]
 pub struct BuyTicket<'info> {
     #[account(
+        mut,
         seeds = [
             SEED_EVENT,
             event.authority.as_ref(),
