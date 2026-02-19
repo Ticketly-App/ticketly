@@ -136,7 +136,7 @@ pub fn handler(ctx: Context<MintTicket>, params: MintTicketParams) -> Result<()>
     );
 
     create_ticket_metadata(
-        &ctx.accounts.token_metadata_program,
+        &ctx.accounts.token_metadata_program.to_account_info(),
         &ctx.accounts.metadata_account,
         &ctx.accounts.mint.to_account_info(),
         &ctx.accounts.ticket.to_account_info(),

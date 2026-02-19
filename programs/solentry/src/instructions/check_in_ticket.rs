@@ -50,7 +50,7 @@ pub fn handler(ctx: Context<CheckInTicket>) -> Result<()> {
     ]];
 
     freeze_ticket_metadata(
-        &ctx.accounts.token_metadata_program,
+        &ctx.accounts.token_metadata_program.to_account_info(),
         &ctx.accounts.metadata_account,
         &ctx.accounts.ticket.to_account_info(),
         signer_seeds,

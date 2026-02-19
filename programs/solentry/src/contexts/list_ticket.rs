@@ -60,7 +60,7 @@ pub struct ListTicket<'info> {
     pub seller_ata: Account<'info, TokenAccount>,
 
     #[account(
-        init,
+        init_if_needed,
         payer                       = seller,
         associated_token::mint      = mint,
         associated_token::authority = listing,

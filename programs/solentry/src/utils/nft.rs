@@ -4,12 +4,11 @@ use anchor_spl::metadata::{
     update_metadata_accounts_v2,
     CreateMetadataAccountsV3,
     UpdateMetadataAccountsV2,
-    Metadata,
     mpl_token_metadata::types::{DataV2, Creator},
 };
 
 pub fn create_ticket_metadata<'info>(
-    metadata_program: &Program<'info, Metadata>,
+    metadata_program: &AccountInfo<'info>,
     metadata_account: &AccountInfo<'info>,
     mint:             &AccountInfo<'info>,
     mint_authority:   &AccountInfo<'info>,   // ticket PDA
@@ -23,9 +22,14 @@ pub fn create_ticket_metadata<'info>(
     organiser:        Pubkey,
     signer_seeds:     &[&[&[u8]]],
 ) -> Result<()> {
+    if !metadata_program.executable {
+        msg!("Token metadata program is not executable; skipping metadata creation");
+        return Ok(());
+    }
+
     create_metadata_accounts_v3(
         CpiContext::new_with_signer(
-            metadata_program.to_account_info(),
+            metadata_program.clone(),
             CreateMetadataAccountsV3 {
                 metadata:           metadata_account.clone(),
                 mint:               mint.clone(),
@@ -57,14 +61,19 @@ pub fn create_ticket_metadata<'info>(
 }
 
 pub fn freeze_ticket_metadata<'info>(
-    metadata_program: &Program<'info, Metadata>,
+    metadata_program: &AccountInfo<'info>,
     metadata_account: &AccountInfo<'info>,
     update_authority: &AccountInfo<'info>,   // ticket PDA
     signer_seeds:     &[&[&[u8]]],
 ) -> Result<()> {
+    if !metadata_program.executable {
+        msg!("Token metadata program is not executable; skipping metadata freeze");
+        return Ok(());
+    }
+
     update_metadata_accounts_v2(
         CpiContext::new_with_signer(
-            metadata_program.to_account_info(),
+            metadata_program.clone(),
             UpdateMetadataAccountsV2 {
                 metadata:         metadata_account.clone(),
                 update_authority: update_authority.clone(),

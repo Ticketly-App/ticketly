@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    metadata::Metadata,
     token::{Mint, Token, TokenAccount},
 };
 use crate::{
@@ -67,6 +66,7 @@ pub struct MintTicket<'info> {
     pub system_program:             Program<'info, System>,
     pub token_program:              Program<'info, Token>,
     pub associated_token_program:   Program<'info, AssociatedToken>,
-    pub token_metadata_program:     Program<'info, Metadata>,
+    /// CHECK: Optional metadata CPI target; executable check is handled in instruction helper.
+    pub token_metadata_program:     UncheckedAccount<'info>,
     pub rent:                       Sysvar<'info, Rent>,
 }

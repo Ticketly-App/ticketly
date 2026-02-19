@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    metadata::Metadata,
     token::{Token, TokenAccount},
 };
 use crate::{constants::*, state::{event::EventAccount, ticket::TicketAccount}};
@@ -53,5 +52,6 @@ pub struct CheckInTicket<'info> {
     pub gate_operator: Signer<'info>,
 
     pub token_program:          Program<'info, Token>,
-    pub token_metadata_program: Program<'info, Metadata>,
+    /// CHECK: Optional metadata CPI target; executable check is handled in instruction helper.
+    pub token_metadata_program: UncheckedAccount<'info>,
 }

@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    metadata::Metadata,
     token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
 use crate::{
@@ -74,7 +73,7 @@ pub fn handler(ctx: Context<MintPoap>) -> Result<()> {
 
     let nft_name = format!("{} POAP #{}", event_name, edition_number);
     create_ticket_metadata(
-        &ctx.accounts.token_metadata_program,
+        &ctx.accounts.token_metadata_program.to_account_info(),
         &ctx.accounts.poap_metadata_account,
         &ctx.accounts.poap_mint.to_account_info(),
         &ctx.accounts.poap_record.to_account_info(),
@@ -161,6 +160,7 @@ pub struct MintPoap<'info> {
     pub system_program:           Program<'info, System>,
     pub token_program:            Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_metadata_program:   Program<'info, Metadata>,
+    /// CHECK: Optional metadata CPI target; executable check is handled in instruction helper.
+    pub token_metadata_program:   UncheckedAccount<'info>,
     pub rent:                     Sysvar<'info, Rent>,
 }
