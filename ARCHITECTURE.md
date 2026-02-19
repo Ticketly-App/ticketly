@@ -1,20 +1,20 @@
-# SolEntry Program Architecture
+# ticketly Program Architecture
 
 ## Overview
-SolEntry is an Anchor-based Solana program for event lifecycle management, ticketing, gate check-in, whitelist controls, POAP issuance, and secondary-market listings.
+ticketly is an Anchor-based Solana program for event lifecycle management, ticketing, gate check-in, whitelist controls, POAP issuance, and secondary-market listings.
 
 Core entrypoint:
-- Program: `sol_entry`
-- Program ID: `8QMjo4LvdgEKu67AnE3eGzng5Nc22SrRX7itcvnKqL3W`
+- Program: `ticketly`
+- Program ID: `GawjtcQFx5cnK24VrDiUhGdg4DZbVGLzsSsd4vbxznfs`
 
 ## Repository Layout
-- `solentry/programs/solentry/src/lib.rs` — instruction entrypoints
-- `solentry/programs/solentry/src/instructions/*` — business logic handlers
-- `solentry/programs/solentry/src/contexts/*` — account constraints (Anchor `#[derive(Accounts)]`)
-- `solentry/programs/solentry/src/state/*` — PDA account schemas
-- `solentry/programs/solentry/src/utils/*` — validation + NFT metadata helpers
-- `solentry/programs/solentry/src/security.rs` — reusable authorization/time-window guards
-- `solentry/tests/solentry.ts` — end-to-end integration suite
+- `ticketly/programs/ticketly/src/lib.rs` — instruction entrypoints
+- `ticketly/programs/ticketly/src/instructions/*` — business logic handlers
+- `ticketly/programs/ticketly/src/contexts/*` — account constraints (Anchor `#[derive(Accounts)]`)
+- `ticketly/programs/ticketly/src/state/*` — PDA account schemas
+- `ticketly/programs/ticketly/src/utils/*` — validation + NFT metadata helpers
+- `ticketly/programs/ticketly/src/security.rs` — reusable authorization/time-window guards
+- `ticketly/tests/ticketly.ts` — end-to-end integration suite
 
 ## PDA Model
 Primary deterministic accounts:
@@ -98,7 +98,7 @@ The program emits typed events for observability and indexing:
 - Revenue/POAP (`RevenueWithdrawn`, `PoapMinted`)
 
 ## Testing Status
-Current integration suite (`solentry/tests/solentry.ts`) validates platform, organizer, event lifecycle, mint/transfer/check-in, whitelist, revenue withdrawal, marketplace, and cancellation behavior.
+Current integration suite (`ticketly/tests/ticketly.ts`) validates platform, organizer, event lifecycle, mint/transfer/check-in, whitelist, revenue withdrawal, marketplace, and cancellation behavior.
 
 Latest run outcome: **26 passing**.
 

@@ -1,6 +1,6 @@
-# SolEntry
+# ticketly
 
-SolEntry is an Anchor-based Solana program for event ticketing with:
+ticketly is an Anchor-based Solana program for event ticketing with:
 - event creation and management
 - primary ticket minting
 - gate check-in and operator controls
@@ -11,7 +11,7 @@ SolEntry is an Anchor-based Solana program for event ticketing with:
 ## Program IDs
 | Network | Program ID |
 |---------|------------|
-| devnet | `8QMjo4LvdgEKu67AnE3eGzng5Nc22SrRX7itcvnKqL3W` |
+| devnet | `GawjtcQFx5cnK24VrDiUhGdg4DZbVGLzsSsd4vbxznfs` |
 | mainnet | `TBD` |
 
 ---
@@ -19,16 +19,16 @@ SolEntry is an Anchor-based Solana program for event ticketing with:
 ## Repository Structure
 
 ```text
-SolEntry/
+ticketly/
 ├─ README.md
 ├─ ARCHITECTURE.md
-└─ solentry/
+└─ ticketly/
    ├─ Anchor.toml
    ├─ Cargo.toml
    ├─ package.json
    ├─ migrations/
    ├─ programs/
-   │  └─ solentry/
+   │  └─ ticketly/
    │     └─ src/
    │        ├─ lib.rs
    │        ├─ constants.rs
@@ -40,7 +40,7 @@ SolEntry/
    │        ├─ state/
    │        └─ utils/
    └─ tests/
-      └─ solentry.ts
+      └─ ticketly.ts
 ```
 
 ---
@@ -130,7 +130,7 @@ yarn --version
 From repository root:
 
 ```bash
-cd solentry
+cd ticketly
 yarn install
 anchor build
 ```
@@ -169,7 +169,7 @@ If local validator port conflicts occur (`8899 already in use`), use `--skip-loc
 ### Build program
 
 ```bash
-cd solentry
+cd ticketly
 anchor build
 ```
 
@@ -192,14 +192,14 @@ anchor test --skip-local-validator
 ```
 
 Current suite file:
-- `solentry/tests/solentry.ts`
+- `ticketly/tests/ticketly.ts`
 
 ---
 
 ## Linting / Formatting
 
 ```bash
-cd solentry
+cd ticketly
 yarn lint
 yarn lint:fix
 ```

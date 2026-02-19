@@ -15,7 +15,7 @@ import {
   getAccount,
 } from "@solana/spl-token";
 import { expect } from "chai";
-import type { SolEntry } from "../target/types/sol_entry";
+import type { Ticketly } from "../target/types/ticketly";
 
 // Constants 
 const MPL_METADATA = new PublicKey(
@@ -122,10 +122,10 @@ function baseEventParams(eventId: BN, override: Partial<any> = {}) {
 
 // Test suite 
 
-describe("sol_entry — complete suite", () => {
+describe("ticketly — complete suite", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program   = anchor.workspace.SolEntry as Program<SolEntry>;
+  const program   = anchor.workspace.ticketly as Program<ticketly>;
   const conn      = provider.connection;
   const progId    = program.programId;
 

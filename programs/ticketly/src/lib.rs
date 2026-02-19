@@ -13,10 +13,10 @@ pub mod instructions;
 use contexts::*;
 use instructions::*;
 
-declare_id!("8QMjo4LvdgEKu67AnE3eGzng5Nc22SrRX7itcvnKqL3W");
+declare_id!("GawjtcQFx5cnK24VrDiUhGdg4DZbVGLzsSsd4vbxznfs");
 
 #[program]
-pub mod sol_entry {
+pub mod ticketly {
     use super::*;
 
     pub fn init_platform(
