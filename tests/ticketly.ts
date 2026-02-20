@@ -392,6 +392,42 @@ describe("ticketly — complete suite", () => {
         expect(e.error.errorCode.code).to.equal("OperatorAlreadyAdded");
       }
     });
+
+    it("rejects operator add by non-authority", async () => {
+      try {
+        await program.methods
+          .addOperator(Keypair.generate().publicKey)
+          .accounts({ event: eventKey, authority: buyer1.publicKey })
+          .signers([buyer1])
+          .rpc();
+        expect.fail();
+      } catch (e: any) {
+        expect(e?.error?.errorCode?.code).to.equal("NotEventAuthority");
+      }
+    });
+
+    it("enforces max 10 operators", async () => {
+      const existing = await program.account.eventAccount.fetch(eventKey);
+      const current = existing.gateOperators.length;
+      for (let i = current; i < 10; i++) {
+        await program.methods
+          .addOperator(Keypair.generate().publicKey)
+          .accounts({ event: eventKey, authority: organiser.publicKey })
+          .signers([organiser])
+          .rpc();
+      }
+
+      try {
+        await program.methods
+          .addOperator(Keypair.generate().publicKey)
+          .accounts({ event: eventKey, authority: organiser.publicKey })
+          .signers([organiser])
+          .rpc();
+        expect.fail();
+      } catch (e: any) {
+        expect(e?.error?.errorCode?.code).to.equal("TooManyOperators");
+      }
+    });
   });
 
   // Whitelist
@@ -442,6 +478,38 @@ describe("ticketly — complete suite", () => {
 
       const balAfter = await conn.getBalance(organiser.publicKey);
       expect(balAfter).to.be.greaterThan(balBefore - 5000); // rent returned
+    });
+
+    it("rejects whitelist entry when event is not whitelist-gated", async () => {
+      const id = new BN(78);
+      const [eventKeyNoWl] = eventPda(organiser.publicKey, id, progId);
+      await program.methods
+        .createEvent(baseEventParams(id, { whitelistGated: false }))
+        .accounts({
+          event: eventKeyNoWl,
+          organizerProfile: null,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      const [wlKey] = whitelistPda(eventKeyNoWl, buyer2.publicKey, progId);
+      try {
+        await program.methods
+          .addWhitelistEntry(buyer2.publicKey, 1)
+          .accounts({
+            event: eventKeyNoWl,
+            whitelistEntry: wlKey,
+            authority: organiser.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([organiser])
+          .rpc();
+        expect.fail();
+      } catch (e: any) {
+        expect(e?.error?.errorCode?.code).to.equal("WhitelistNotEnabled");
+      }
     });
   });
 
@@ -515,6 +583,53 @@ describe("ticketly — complete suite", () => {
         expect.fail();
       } catch (e: any) {
         expect(e.error.errorCode.code).to.equal("InvalidTierIndex");
+      }
+    });
+
+    it("requires whitelist entry on whitelist-gated events", async () => {
+      const id = new BN(79);
+      const [wlEventKey] = eventPda(organiser.publicKey, id, progId);
+
+      await program.methods
+        .createEvent(baseEventParams(id, { whitelistGated: true }))
+        .accounts({
+          event: wlEventKey,
+          organizerProfile: null,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      const num = (await program.account.eventAccount.fetch(wlEventKey)).totalMinted;
+      const [tKey] = ticketPda(wlEventKey, num, progId);
+      const [mKey] = mintPda(tKey, progId);
+      const ata = await getAssociatedTokenAddress(mKey, buyer2.publicKey);
+      const [meta] = metadataPda(mKey);
+
+      try {
+        await program.methods
+          .mintTicket({ tierIndex: 0, metadataUri: "https://arweave.net/no-wl" })
+          .accounts({
+            event: wlEventKey,
+            ticket: tKey,
+            mint: mKey,
+            recipientAta: ata,
+            metadataAccount: meta,
+            whitelistEntry: null,
+            recipient: buyer2.publicKey,
+            payer: buyer2.publicKey,
+            systemProgram: SystemProgram.programId,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            tokenMetadataProgram: MPL_METADATA,
+            rent: SYSVAR_RENT_PUBKEY,
+          })
+          .signers([buyer2])
+          .rpc();
+        expect.fail();
+      } catch (e: any) {
+        expect(e?.error?.errorCode?.code).to.equal("WhitelistEntryRequired");
       }
     });
   });
