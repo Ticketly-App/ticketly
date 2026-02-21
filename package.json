@@ -1,6 +1,8 @@
 {
   "license": "ISC",
   "scripts": {
+    "test": "anchor test --skip-local-validator",
+    "test:local": "anchor test --skip-local-validator",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },

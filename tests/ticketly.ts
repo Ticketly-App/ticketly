@@ -128,6 +128,8 @@ describe("ticketly — complete suite", () => {
   const program   = anchor.workspace.ticketly as Program<ticketly>;
   const conn      = provider.connection;
   const progId    = program.programId;
+  let txSignatures: string[] = [];
+  const originalSendAndConfirm = provider.sendAndConfirm.bind(provider);
 
   const organiser  = Keypair.generate();
   const buyer1     = Keypair.generate();
@@ -141,6 +143,12 @@ describe("ticketly — complete suite", () => {
   let   eventBump: number;
 
   before(async () => {
+    provider.sendAndConfirm = (async (...args: Parameters<typeof originalSendAndConfirm>) => {
+      const signature = await originalSendAndConfirm(...args);
+      txSignatures.push(signature);
+      return signature;
+    }) as typeof provider.sendAndConfirm;
+
     await Promise.all([
       airdrop(conn, organiser.publicKey),
       airdrop(conn, buyer1.publicKey),
@@ -148,6 +156,27 @@ describe("ticketly — complete suite", () => {
       airdrop(conn, operator.publicKey),
     ]);
     [eventKey, eventBump] = eventPda(organiser.publicKey, EVENT_ID, progId);
+  });
+
+  beforeEach(() => {
+    txSignatures = [];
+  });
+
+  afterEach(function () {
+    const testName = this.currentTest?.fullTitle() ?? "unknown test";
+    if (txSignatures.length === 0) {
+      console.log(`[tx-signatures] ${testName}: none`);
+      return;
+    }
+
+    console.log(`[tx-signatures] ${testName}`);
+    for (const [index, signature] of txSignatures.entries()) {
+      console.log(`  ${index + 1}. ${signature}`);
+    }
+  });
+
+  after(() => {
+    provider.sendAndConfirm = originalSendAndConfirm;
   });
 
   // Platform 
