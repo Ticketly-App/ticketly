@@ -12,6 +12,7 @@ pub mod mint_poap;
 pub mod init_platform;
 pub mod init_organizer;
 pub mod withdraw_revenue;
+pub mod refund_ticket;
 
 pub use create_event::*;
 pub use update_event::*;
@@ -27,3 +28,4 @@ pub use mint_poap::*;
 pub use init_platform::*;
 pub use init_organizer::*;
 pub use withdraw_revenue::*;
+pub use refund_ticket::*;

@@ -36,6 +36,9 @@ const ticketPda = (ev: PublicKey, num: BN, prog: PublicKey) =>
 const mintPda = (ticket: PublicKey, prog: PublicKey) =>
   pda([Buffer.from("ticket_mint"), ticket.toBuffer()], prog);
 
+const refundPda = (ticket: PublicKey, prog: PublicKey) =>
+  pda([Buffer.from("refund"), ticket.toBuffer()], prog);
+
 const listingPda = (ticket: PublicKey, prog: PublicKey) =>
   pda([Buffer.from("listing"), ticket.toBuffer()], prog);
 
@@ -1020,6 +1023,368 @@ describe("ticketly — complete suite", () => {
         const logs = (e?.logs ?? []).join(" ");
         expect(code === "CannotCancelAfterCheckIn" || logs.includes("CannotCancelAfterCheckIn")).to.be.true;
       }
+    });
+  });
+
+  // Refund ticket 
+
+  describe("refund_ticket", () => {
+    const REFUND_EVENT_ID = new BN(800);
+    let refundEventKey: PublicKey;
+    let refundTicket0Key: PublicKey;
+    let refundMint0Key: PublicKey;
+    let refundAta0: PublicKey;
+
+    before(async () => {
+      [refundEventKey] = eventPda(organiser.publicKey, REFUND_EVENT_ID, progId);
+
+      // Create event with GA tier at 0.5 SOL
+      await program.methods
+        .createEvent(baseEventParams(REFUND_EVENT_ID))
+        .accounts({
+          event: refundEventKey,
+          organizerProfile: null,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      // Mint ticket #0 to buyer1
+      const num0 = (await program.account.eventAccount.fetch(refundEventKey)).totalMinted;
+      [refundTicket0Key] = ticketPda(refundEventKey, num0, progId);
+      [refundMint0Key]   = mintPda(refundTicket0Key, progId);
+      refundAta0         = await getAssociatedTokenAddress(refundMint0Key, buyer1.publicKey);
+      const [meta0]      = metadataPda(refundMint0Key);
+
+      await program.methods
+        .mintTicket({ tierIndex: 0, metadataUri: "https://arweave.net/refund/0" })
+        .accounts({
+          event: refundEventKey, ticket: refundTicket0Key, mint: refundMint0Key,
+          recipientAta: refundAta0, metadataAccount: meta0, whitelistEntry: null,
+          recipient: buyer1.publicKey, payer: buyer1.publicKey,
+          systemProgram: SystemProgram.programId, tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenMetadataProgram: MPL_METADATA, rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([buyer1])
+        .rpc();
+    });
+
+    it("rejects refund on non-cancelled event", async () => {
+      const ev = await program.account.eventAccount.fetch(refundEventKey);
+      expect(ev.isCancelled).to.be.false;
+
+      const [refRecKey] = refundPda(refundTicket0Key, progId);
+      try {
+        await program.methods
+          .refundTicket()
+          .accounts({
+            event: refundEventKey,
+            ticket: refundTicket0Key,
+            refundRecord: refRecKey,
+            ticketOwner: buyer1.publicKey,
+            authority: organiser.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([organiser])
+          .rpc();
+        expect.fail("should have thrown EventNotCancelled");
+      } catch (e: any) {
+        const code = e?.error?.errorCode?.code;
+        const logs = (e?.logs ?? []).join(" ");
+        expect(code === "EventNotCancelled" || logs.includes("EventNotCancelled")).to.be.true;
+      }
+    });
+
+    it("rejects refund by non-authority", async () => {
+      // Cancel event first
+      await program.methods
+        .cancelEvent()
+        .accounts({ event: refundEventKey, authority: organiser.publicKey })
+        .signers([organiser])
+        .rpc();
+
+      const ev = await program.account.eventAccount.fetch(refundEventKey);
+      expect(ev.isCancelled).to.be.true;
+
+      const [refRecKey] = refundPda(refundTicket0Key, progId);
+      try {
+        await program.methods
+          .refundTicket()
+          .accounts({
+            event: refundEventKey,
+            ticket: refundTicket0Key,
+            refundRecord: refRecKey,
+            ticketOwner: buyer1.publicKey,
+            authority: buyer2.publicKey, // not the organiser
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([buyer2])
+          .rpc();
+        expect.fail("should have thrown NotEventAuthority");
+      } catch (e: any) {
+        const code = e?.error?.errorCode?.code;
+        const logs = (e?.logs ?? []).join(" ");
+        expect(code === "NotEventAuthority" || logs.includes("NotEventAuthority") || logs.includes("A seeds constraint was violated")).to.be.true;
+      }
+    });
+
+    it("rejects wrong ticket_owner account", async () => {
+      const [refRecKey] = refundPda(refundTicket0Key, progId);
+      try {
+        await program.methods
+          .refundTicket()
+          .accounts({
+            event: refundEventKey,
+            ticket: refundTicket0Key,
+            refundRecord: refRecKey,
+            ticketOwner: buyer2.publicKey, // wrong — ticket owned by buyer1
+            authority: organiser.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([organiser])
+          .rpc();
+        expect.fail("should have thrown NotTicketOwner");
+      } catch (e: any) {
+        const code = e?.error?.errorCode?.code;
+        const logs = (e?.logs ?? []).join(" ");
+        expect(code === "NotTicketOwner" || logs.includes("NotTicketOwner")).to.be.true;
+      }
+    });
+
+    it("successfully refunds ticket to current owner", async () => {
+      const tierPrice = 0.5 * LAMPORTS_PER_SOL;
+      const ownerBefore = await conn.getBalance(buyer1.publicKey);
+      const orgBefore   = await conn.getBalance(organiser.publicKey);
+
+      const [refRecKey] = refundPda(refundTicket0Key, progId);
+      await program.methods
+        .refundTicket()
+        .accounts({
+          event: refundEventKey,
+          ticket: refundTicket0Key,
+          refundRecord: refRecKey,
+          ticketOwner: buyer1.publicKey,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      const ownerAfter = await conn.getBalance(buyer1.publicKey);
+      const orgAfter   = await conn.getBalance(organiser.publicKey);
+
+      // buyer1 should receive exactly the tier price
+      expect(ownerAfter - ownerBefore).to.equal(tierPrice);
+
+      // organiser should have paid the tier price + tx fees (so balance decreased)
+      expect(orgBefore - orgAfter).to.be.greaterThan(tierPrice);
+
+      // Verify refund record PDA was created
+      const refRec = await program.account.refundRecord.fetch(refRecKey);
+      expect(refRec.ticket.toBase58()).to.equal(refundTicket0Key.toBase58());
+      expect(refRec.event.toBase58()).to.equal(refundEventKey.toBase58());
+      expect(refRec.owner.toBase58()).to.equal(buyer1.publicKey.toBase58());
+      expect(refRec.amount.toNumber()).to.equal(tierPrice);
+    });
+
+    it("rejects double refund (same ticket)", async () => {
+      const [refRecKey] = refundPda(refundTicket0Key, progId);
+      try {
+        await program.methods
+          .refundTicket()
+          .accounts({
+            event: refundEventKey,
+            ticket: refundTicket0Key,
+            refundRecord: refRecKey,
+            ticketOwner: buyer1.publicKey,
+            authority: organiser.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([organiser])
+          .rpc();
+        expect.fail("should have failed — refund record already exists");
+      } catch (e: any) {
+        // Anchor `init` constraint fails when the PDA account already exists
+        // The error is usually an Anchor-level error (not a custom error)
+        expect(e).to.exist;
+      }
+    });
+
+    it("refunds to current owner after transfer (marketplace buyer gets refund)", async () => {
+      // Mint ticket #1 to buyer1
+      const num1 = (await program.account.eventAccount.fetch(refundEventKey)).totalMinted;
+      const [ticket1Key] = ticketPda(refundEventKey, num1, progId);
+      const [mint1Key]   = mintPda(ticket1Key, progId);
+      const ata1Buyer1   = await getAssociatedTokenAddress(mint1Key, buyer1.publicKey);
+      const [meta1]      = metadataPda(mint1Key);
+
+      // Need to un-cancel to mint, then re-cancel — but cancel is irreversible.
+      // So create a new cancelled event for this test instead.
+      const REFUND_EVENT_2_ID = new BN(801);
+      const [refundEvent2Key] = eventPda(organiser.publicKey, REFUND_EVENT_2_ID, progId);
+
+      await program.methods
+        .createEvent(baseEventParams(REFUND_EVENT_2_ID))
+        .accounts({
+          event: refundEvent2Key,
+          organizerProfile: null,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      // Mint ticket #0 to buyer1
+      const num = (await program.account.eventAccount.fetch(refundEvent2Key)).totalMinted;
+      const [tk] = ticketPda(refundEvent2Key, num, progId);
+      const [mk] = mintPda(tk, progId);
+      const ataB1 = await getAssociatedTokenAddress(mk, buyer1.publicKey);
+      const ataB2 = await getAssociatedTokenAddress(mk, buyer2.publicKey);
+      const [metaK] = metadataPda(mk);
+
+      await program.methods
+        .mintTicket({ tierIndex: 0, metadataUri: "https://arweave.net/refund/transfer" })
+        .accounts({
+          event: refundEvent2Key, ticket: tk, mint: mk,
+          recipientAta: ataB1, metadataAccount: metaK, whitelistEntry: null,
+          recipient: buyer1.publicKey, payer: buyer1.publicKey,
+          systemProgram: SystemProgram.programId, tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenMetadataProgram: MPL_METADATA, rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([buyer1])
+        .rpc();
+
+      // Verify buyer1 is the owner
+      let tkt = await program.account.ticketAccount.fetch(tk);
+      expect(tkt.owner.toBase58()).to.equal(buyer1.publicKey.toBase58());
+
+      // Transfer ticket from buyer1 → buyer2
+      await program.methods
+        .transferTicket()
+        .accounts({
+          event: refundEvent2Key, ticket: tk, mint: mk,
+          senderAta: ataB1, recipientAta: ataB2,
+          sender: buyer1.publicKey, recipient: buyer2.publicKey,
+          systemProgram: SystemProgram.programId, tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([buyer1])
+        .rpc();
+
+      // Verify buyer2 is now the owner
+      tkt = await program.account.ticketAccount.fetch(tk);
+      expect(tkt.owner.toBase58()).to.equal(buyer2.publicKey.toBase58());
+
+      // Cancel event 
+      await program.methods
+        .cancelEvent()
+        .accounts({ event: refundEvent2Key, authority: organiser.publicKey })
+        .signers([organiser])
+        .rpc();
+
+      // Refund — should go to buyer2 (current owner), NOT buyer1 (original buyer)
+      const tierPrice = 0.5 * LAMPORTS_PER_SOL;
+      const buyer2Before = await conn.getBalance(buyer2.publicKey);
+      const buyer1Before = await conn.getBalance(buyer1.publicKey);
+
+      const [refRecKey2] = refundPda(tk, progId);
+      await program.methods
+        .refundTicket()
+        .accounts({
+          event: refundEvent2Key,
+          ticket: tk,
+          refundRecord: refRecKey2,
+          ticketOwner: buyer2.publicKey, // current owner
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      const buyer2After = await conn.getBalance(buyer2.publicKey);
+      const buyer1After = await conn.getBalance(buyer1.publicKey);
+
+      // buyer2 (current owner) should receive the refund
+      expect(buyer2After - buyer2Before).to.equal(tierPrice);
+
+      // buyer1 (original buyer) should NOT receive anything
+      expect(buyer1After).to.equal(buyer1Before);
+
+      // Verify refund record
+      const refRec = await program.account.refundRecord.fetch(refRecKey2);
+      expect(refRec.owner.toBase58()).to.equal(buyer2.publicKey.toBase58());
+      expect(refRec.amount.toNumber()).to.equal(tierPrice);
+    });
+
+    it("refunds VIP ticket at VIP tier price", async () => {
+      const REFUND_EVENT_3_ID = new BN(802);
+      const [refundEvent3Key] = eventPda(organiser.publicKey, REFUND_EVENT_3_ID, progId);
+      const vipPrice = 2 * LAMPORTS_PER_SOL;
+
+      await program.methods
+        .createEvent(baseEventParams(REFUND_EVENT_3_ID))
+        .accounts({
+          event: refundEvent3Key,
+          organizerProfile: null,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      // Mint VIP ticket (tier index 1) to buyer1
+      const num = (await program.account.eventAccount.fetch(refundEvent3Key)).totalMinted;
+      const [tk] = ticketPda(refundEvent3Key, num, progId);
+      const [mk] = mintPda(tk, progId);
+      const ata  = await getAssociatedTokenAddress(mk, buyer1.publicKey);
+      const [metaK] = metadataPda(mk);
+
+      await program.methods
+        .mintTicket({ tierIndex: 1, metadataUri: "https://arweave.net/refund/vip" })
+        .accounts({
+          event: refundEvent3Key, ticket: tk, mint: mk,
+          recipientAta: ata, metadataAccount: metaK, whitelistEntry: null,
+          recipient: buyer1.publicKey, payer: buyer1.publicKey,
+          systemProgram: SystemProgram.programId, tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenMetadataProgram: MPL_METADATA, rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([buyer1])
+        .rpc();
+
+      // Cancel
+      await program.methods
+        .cancelEvent()
+        .accounts({ event: refundEvent3Key, authority: organiser.publicKey })
+        .signers([organiser])
+        .rpc();
+
+      // Refund
+      const ownerBefore = await conn.getBalance(buyer1.publicKey);
+      const [refRecK] = refundPda(tk, progId);
+
+      await program.methods
+        .refundTicket()
+        .accounts({
+          event: refundEvent3Key,
+          ticket: tk,
+          refundRecord: refRecK,
+          ticketOwner: buyer1.publicKey,
+          authority: organiser.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([organiser])
+        .rpc();
+
+      const ownerAfter = await conn.getBalance(buyer1.publicKey);
+      expect(ownerAfter - ownerBefore).to.equal(vipPrice);
+
+      const refRec = await program.account.refundRecord.fetch(refRecK);
+      expect(refRec.amount.toNumber()).to.equal(vipPrice);
     });
   });
 });

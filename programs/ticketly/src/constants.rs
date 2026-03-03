@@ -7,6 +7,7 @@ pub const SEED_POAP_MINT:  &[u8] = b"poap_mint";
 pub const SEED_WHITELIST:  &[u8] = b"whitelist";
 pub const SEED_ORGANIZER:  &[u8] = b"organizer";
 pub const SEED_PLATFORM:   &[u8] = b"platform";
+pub const SEED_REFUND:     &[u8] = b"refund";
 
 pub const MAX_NAME_LEN:    usize = 50;
 pub const MAX_DESC_LEN:    usize = 200;

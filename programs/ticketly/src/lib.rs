@@ -158,4 +158,10 @@ pub mod ticketly {
     pub fn cancel_listing(ctx: Context<CancelListing>) -> Result<()> {
         instructions::cancel_listing::handler(ctx)
     }
+
+    /// Refund a ticket holder after event cancellation.
+    /// Organizer pays `ticket.price_paid` (primary ticket price) to the current owner.
+    pub fn refund_ticket(ctx: Context<RefundTicket>) -> Result<()> {
+        instructions::refund_ticket::handler(ctx)
+    }
 }

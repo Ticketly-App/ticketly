@@ -1,7 +1,7 @@
 [package]
 name = "ticketly"
 version = "0.1.0"
-description = "Onchain Luma — tokenised event ticketing on Solana"
+description = "Onchain tokenised event ticketing on Solana"
 edition = "2021"
 
 [lib]

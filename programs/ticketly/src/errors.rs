@@ -106,6 +106,11 @@ pub enum EventGateError {
     #[msg("Requested withdrawal exceeds available balance")]
     InsufficientFunds,
 
+    #[msg("Event must be cancelled before refunding tickets")]
+    EventNotCancelled,
+    #[msg("This ticket has already been refunded")]
+    TicketAlreadyRefunded,
+
     #[msg("Arithmetic overflow or underflow")]
     Overflow,
 }

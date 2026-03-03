@@ -7,6 +7,7 @@ pub mod list_ticket;
 pub mod buy_ticket;
 pub mod cancel_listing;
 pub mod manage_operators;
+pub mod refund_ticket;
 
 pub use create_event::*;
 pub use update_event::*;
@@ -17,3 +18,4 @@ pub use list_ticket::*;
 pub use buy_ticket::*;
 pub use cancel_listing::*;
 pub use manage_operators::*;
+pub use refund_ticket::*;

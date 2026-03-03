@@ -133,6 +133,16 @@ pub struct WhitelistEntryRemoved {
 
 
 #[event]
+pub struct TicketRefunded {
+    pub event_pda:  Pubkey,
+    pub ticket_pda: Pubkey,
+    pub owner:      Pubkey,
+    pub amount:     u64,
+    pub timestamp:  i64,
+}
+
+
+#[event]
 pub struct RevenueWithdrawn {
     pub event_pda: Pubkey,
     pub authority: Pubkey,

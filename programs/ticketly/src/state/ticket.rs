@@ -74,3 +74,24 @@ impl ListingAccount {
         + PUBKEY + PUBKEY + PUBKEY + PUBKEY
         + U64 + I64 + U8;
 }
+
+
+#[account]
+pub struct RefundRecord {
+    pub ticket:      Pubkey,
+    pub event:       Pubkey,
+    pub owner:       Pubkey,     // who received the refund (current holder)
+    pub amount:      u64,
+    pub refunded_at: i64,
+    pub bump:        u8,
+}
+
+impl RefundRecord {
+    pub const LEN: usize = DISCRIMINATOR
+        + PUBKEY    // ticket
+        + PUBKEY    // event
+        + PUBKEY    // owner
+        + U64       // amount
+        + I64       // refunded_at
+        + U8;       // bump
+}
